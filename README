@@ -1,0 +1,18 @@
+		efilinux - A UEFI bootloader
+
+efilinux is a UEFI OS loader. It was created as a reference
+implementation with the aim of being well documented and containing
+well written source code.
+
+gnu-efi is required to build efilinux.
+
+The latest development version of efilinux can be found at,
+
+	git://git.kernel.org/pub/scm/boot/efilinux/efilinux.git
+
+Stable versions can be found at,
+
+	http://www.kernel.org/pub/linux/boot/efilinux/
+
+
+Matt Fleming <matt.fleming@linux.intel.com>
