@@ -21,14 +21,25 @@
 		-j .rela -j .reloc --target=$(FORMAT) $*.so $@
 
 OBJCOPY=objcopy
-ARCH=x86-64
-FORMAT=efi-app-$(ARCH)
 
-LDSCRIPT=/usr/lib64/gnuefi/elf_x86_64_efi.lds
+MACHINE=$(shell $(CC) -dumpmachine | sed "s/\(-\).*$$//")
 
-CFLAGS=-I. -I/usr/include/efi -I/usr/include/efi/x86_64 \
+ifeq ($(MACHINE),x86_64)
+	ARCH=$(MACHINE)
+	LIBDIR=/usr/lib64
+	FORMAT=efi-app-x86-64
+else
+	ARCH=ia32
+	LIBDIR=/usr/lib
+	FORMAT=efi-app-$(ARCH)
+endif
+
+CRT0=$(LIBDIR)/gnuefi/crt0-efi-$(ARCH).o
+LDSCRIPT=$(LIBDIR)/gnuefi/elf_$(ARCH)_efi.lds
+
+CFLAGS=-I. -I/usr/include/efi -I/usr/include/efi/$(ARCH) \
 		-DEFI_FUNCTION_WRAPPER -fPIC -fshort-wchar
-LDFLAGS=-T $(LDSCRIPT) -Bsymbolic -shared -nostdlib -L/usr/lib64/ /usr/lib64/gnuefi/crt0-efi-x86_64.o
+LDFLAGS=-T $(LDSCRIPT) -Bsymbolic -shared -nostdlib -L$(LIBDIR) $(CRT0)
 
 IMAGE=efilinux.efi
 OBJS = entry.o
