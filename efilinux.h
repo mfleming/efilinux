@@ -59,7 +59,7 @@ static inline BOOLEAN register_table(EFI_SYSTEM_TABLE *_table)
 	boot = sys_table->BootServices;
 	runtime = sys_table->RuntimeServices;
 
-	return CheckCrc(sys_table->Hdr.HeaderSize, sys_table);
+	return CheckCrc(sys_table->Hdr.HeaderSize, &sys_table->Hdr);
 }
 
 /**
