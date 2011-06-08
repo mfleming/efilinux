@@ -42,25 +42,9 @@
 #ifndef __EFILINUX_H__
 #define __EFILINUX_H__
 
-static EFI_SYSTEM_TABLE *sys_table;
-static EFI_BOOT_SERVICES *boot;
-static EFI_RUNTIME_SERVICES *runtime;
-
-/**
- * register_table - Register the EFI system table
- * @_table: EFI system table
- *
- * If the system table CRC check fails return FALSE, otherwise return
- * TRUE.
- */
-static inline BOOLEAN register_table(EFI_SYSTEM_TABLE *_table)
-{
-	sys_table = _table;
-	boot = sys_table->BootServices;
-	runtime = sys_table->RuntimeServices;
-
-	return CheckCrc(sys_table->Hdr.HeaderSize, &sys_table->Hdr);
-}
+extern EFI_SYSTEM_TABLE *sys_table;
+extern EFI_BOOT_SERVICES *boot;
+extern EFI_RUNTIME_SERVICES *runtime;
 
 /**
  * allocate_pages - Allocate memory pages from the system

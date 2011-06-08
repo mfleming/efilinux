@@ -36,6 +36,10 @@
 
 #define ERROR_STRING_LENGTH	32
 
+EFI_SYSTEM_TABLE *sys_table;
+EFI_BOOT_SERVICES *boot;
+EFI_RUNTIME_SERVICES *runtime;
+
 static void
 print_memory_map(EFI_MEMORY_DESCRIPTOR *buf, UINTN size,
 		 UINTN key, UINTN desc_size, UINTN desc_version)
@@ -81,7 +85,7 @@ print_memory_map(EFI_MEMORY_DESCRIPTOR *buf, UINTN size,
  * @sys_table: EFI system table
  */
 EFI_STATUS
-efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
+efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 {
 	EFI_MEMORY_DESCRIPTOR *map_buf;
 	UINTN desc_size, desc_version;
@@ -89,8 +93,12 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *sys_table)
 	WCHAR *error_buf;
 	EFI_STATUS err;
 
-	InitializeLib(image, sys_table);
-	if (register_table(sys_table) != TRUE)
+	InitializeLib(image, _table);
+	sys_table = _table;
+	boot = sys_table->BootServices;
+	runtime = sys_table->RuntimeServices;
+
+	if (CheckCrc(sys_table->Hdr.HeaderSize, &sys_table->Hdr) != TRUE)
 		return EFI_LOAD_ERROR;
 
 	Print(L"efilinux loader\n");
