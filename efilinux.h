@@ -57,6 +57,9 @@ extern EFI_RUNTIME_SERVICES *runtime;
  * memory and return a pointer to the base of the allocation in
  * @memory if the allocation succeeds. On success, the firmware memory
  * map is updated accordingly.
+ *
+ * If @atype is AllocateAddress then, on input, @memory specifies the
+ * address at which to attempt to allocate the memory pages.
  */
 static inline EFI_STATUS
 allocate_pages(EFI_ALLOCATE_TYPE atype, EFI_MEMORY_TYPE mtype,
