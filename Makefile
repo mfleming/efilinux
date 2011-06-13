@@ -56,7 +56,7 @@ CFLAGS=-I. -I/usr/include/efi -I/usr/include/efi/$(ARCH) \
 LDFLAGS=-T $(LDSCRIPT) -Bsymbolic -shared -nostdlib -L$(LIBDIR) $(CRT0)
 
 IMAGE=efilinux.efi
-OBJS = entry.o
+OBJS = entry.o malloc.o
 
 all: $(IMAGE)
 
