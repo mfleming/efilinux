@@ -161,7 +161,7 @@ exit_boot_services(EFI_HANDLE image, UINTN key)
  * exit - Terminate a loaded EFI image
  * @image: firmware-allocated handle that identifies the image
  * @status: the image's exit code
- * @size: size in bytes of @data. Ignored if @status is EFI_SUCCESS
+ * @size: size in bytes of @reason. Ignored if @status is EFI_SUCCESS
  * @reason: a NUL-terminated status string, optionally followed by binary data
  *
  * This function terminates @image and returns control to the boot

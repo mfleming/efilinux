@@ -184,5 +184,5 @@ failed:
 
 	StatusToString(error_buf, err);
 	Print(L": %s\n", error_buf);
-	return exit(image, err, size, error_buf);
+	return exit(image, err, ERROR_STRING_LENGTH, error_buf);
 }
