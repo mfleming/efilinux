@@ -2,6 +2,7 @@
 #define __STDLIB_H__
 
 extern void *malloc(UINTN size);
+extern void free(void *buf);
 
 static inline void memset(char *dst, char ch, UINTN size)
 {
