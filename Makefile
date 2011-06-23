@@ -52,7 +52,8 @@ CRT0=$(LIBDIR)/gnuefi/crt0-efi-$(ARCH).o
 LDSCRIPT=$(LIBDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
 CFLAGS=-I. -I/usr/include/efi -I/usr/include/efi/$(ARCH) \
-		-DEFI_FUNCTION_WRAPPER -fPIC -fshort-wchar -ffreestanding
+		-DEFI_FUNCTION_WRAPPER -fPIC -fshort-wchar -ffreestanding \
+		-Wall
 LDFLAGS=-T $(LDSCRIPT) -Bsymbolic -shared -nostdlib -L$(LIBDIR) $(CRT0)
 
 IMAGE=efilinux.efi
