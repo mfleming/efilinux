@@ -97,12 +97,20 @@ failed:
 	return err;
 }
 
-static void
-print_memory_map(EFI_MEMORY_DESCRIPTOR *buf, UINTN size,
-		 UINTN key, UINTN desc_size, UINTN desc_version)
+static EFI_STATUS print_memory_map(void)
 {
+	EFI_MEMORY_DESCRIPTOR *buf;
+	UINTN desc_size;
+	UINT32 desc_version;
+	UINTN size, map_key;
 	EFI_MEMORY_DESCRIPTOR *desc;
+	EFI_STATUS err;
 	int i;
+
+	err = memory_map(&buf, &size, &map_key,
+			 &desc_size, &desc_version);
+	if (err != EFI_SUCCESS)
+		return err;
 
 	Print(L"System Memory Map\n");
 	Print(L"System Memory Map Size: %d\n", size);
@@ -134,6 +142,8 @@ print_memory_map(EFI_MEMORY_DESCRIPTOR *buf, UINTN size,
 		desc = (void *)desc + desc_size;
 		i++;
 	}
+
+	return err;
 }
 
 /**
@@ -144,9 +154,6 @@ print_memory_map(EFI_MEMORY_DESCRIPTOR *buf, UINTN size,
 EFI_STATUS
 efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 {
-	EFI_MEMORY_DESCRIPTOR *map_buf;
-	UINTN desc_size, desc_version;
-	UINTN size, map_key, prev_size;
 	WCHAR *error_buf;
 	EFI_STATUS err;
 
@@ -160,13 +167,9 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 
 	Print(L"efilinux loader\n");
 
-
-	err = memory_map(&map_buf, &size, &map_key,
-			 &desc_size, &desc_version);
+	err = print_memory_map();
 	if (err != EFI_SUCCESS)
 		goto failed;
-
-	print_memory_map(map_buf, size, map_key, desc_size, desc_version);
 
 	return EFI_SUCCESS;
 
