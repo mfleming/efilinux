@@ -142,7 +142,7 @@ static inline EFI_STATUS free_pool(void *buffer)
  */
 static inline EFI_STATUS
 get_memory_map(UINTN *size, EFI_MEMORY_DESCRIPTOR *map, UINTN *key,
-	       UINTN *descr_size, UINTN *descr_version)
+	       UINTN *descr_size, UINT32 *descr_version)
 {
 	return uefi_call_wrapper(boot->GetMemoryMap, 5, size, map,
 				 key, descr_size, descr_version);

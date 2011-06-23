@@ -54,7 +54,7 @@ EFI_RUNTIME_SERVICES *runtime;
  */
 static EFI_STATUS
 memory_map(EFI_MEMORY_DESCRIPTOR **map_buf, UINTN *map_size,
-	   UINTN *map_key, UINTN *desc_size, UINTN *desc_version)
+	   UINTN *map_key, UINTN *desc_size, UINT32 *desc_version)
 {
 	EFI_STATUS err;
 
