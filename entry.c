@@ -36,6 +36,8 @@
 #include "efilinux.h"
 #include "fs.h"
 #include "protocol.h"
+#include "loader.h"
+#include "stdlib.h"
 
 #define ERROR_STRING_LENGTH	32
 
@@ -57,7 +59,7 @@ EFI_RUNTIME_SERVICES *runtime;
  * to by @map_buf and @map_key, @desc_size and @desc_version are
  * updated.
  */
-static EFI_STATUS
+EFI_STATUS
 memory_map(EFI_MEMORY_DESCRIPTOR **map_buf, UINTN *map_size,
 	   UINTN *map_key, UINTN *desc_size, UINT32 *desc_version)
 {
@@ -286,6 +288,10 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 
 	err = parse_args(info->LoadOptions, info->LoadOptionsSize,
 			 &name, &cmdline);
+	if (err != EFI_SUCCESS)
+		goto failed;
+
+	err = load_image(image, name, cmdline);
 	if (err != EFI_SUCCESS)
 		goto failed;
 

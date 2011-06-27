@@ -214,4 +214,8 @@ static inline const CHAR16 *memory_type_to_str(UINT32 type)
 	return memory_types[type];
 }
 
+extern EFI_STATUS memory_map(EFI_MEMORY_DESCRIPTOR **map_buf,
+			     UINTN *map_size, UINTN *map_key,
+			     UINTN *desc_size, UINT32 *desc_version);
+			     
 #endif /* __EFILINUX_H__ */

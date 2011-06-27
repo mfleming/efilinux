@@ -53,19 +53,23 @@ LDSCRIPT=$(LIBDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
 CFLAGS=-I. -I/usr/include/efi -I/usr/include/efi/$(ARCH) \
 		-DEFI_FUNCTION_WRAPPER -fPIC -fshort-wchar -ffreestanding \
-		-Wall -Ifs/ -D$(ARCH)
+		-Wall -Ifs/ -Iloaders/ -D$(ARCH)
 LDFLAGS=-T $(LDSCRIPT) -Bsymbolic -shared -nostdlib -L$(LIBDIR) $(CRT0)
 
 IMAGE=efilinux.efi
 OBJS = entry.o malloc.o
 FS = fs/fs.o
 
+LOADERS = loaders/loader.o \
+	  loaders/bzimage/bzimage.o \
+	  loaders/bzimage/graphics.o
+
 all: $(IMAGE)
 
 efilinux.efi: efilinux.so
 
-efilinux.so: $(OBJS) $(FS)
+efilinux.so: $(OBJS) $(FS) $(LOADERS)
 	$(LD) $(LDFLAGS) -o $@ $^  -lgnuefi -lefi $(shell $(CC) -print-libgcc-file-name)
 
 clean:
-	rm -f $(IMAGE) efilinux.so $(OBJS) $(FS)
+	rm -f $(IMAGE) efilinux.so $(OBJS) $(FS) $(LOADERS)
