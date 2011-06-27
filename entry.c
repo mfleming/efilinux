@@ -32,7 +32,9 @@
  */
 
 #include <efi.h>
+#include <efilib.h>
 #include "efilinux.h"
+#include "fs.h"
 
 #define ERROR_STRING_LENGTH	32
 
@@ -168,6 +170,10 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 	Print(L"efilinux loader\n");
 
 	err = print_memory_map();
+	if (err != EFI_SUCCESS)
+		goto failed;
+
+	err = fs_init();
 	if (err != EFI_SUCCESS)
 		goto failed;
 
