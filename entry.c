@@ -35,8 +35,11 @@
 #include <efilib.h>
 #include "efilinux.h"
 #include "fs.h"
+#include "protocol.h"
 
 #define ERROR_STRING_LENGTH	32
+
+static CHAR16 *banner = L"efilinux loader\n";
 
 EFI_SYSTEM_TABLE *sys_table;
 EFI_BOOT_SERVICES *boot;
@@ -148,6 +151,107 @@ static EFI_STATUS print_memory_map(void)
 	return err;
 }
 
+static EFI_STATUS
+parse_args(CHAR16 *options, UINT32 size, CHAR16 **name, char **cmdline)
+{
+	CHAR16 *n, *filename = NULL;
+	int i;
+
+	if (!options || size == 0)
+		goto fail;
+
+	/* Skip the first word, that's our name. */
+	for (i = 0; i < size && options[i] != ' '; i++)
+		;
+
+	/* No arguments */
+	if (i == size)
+		goto fail;
+
+	n = &options[++i];
+
+	while (n <= &options[size]) {
+		if (*n == '-') {
+			switch (*++n) {
+			case 'h':
+				goto fail;
+			case 'f':
+				n++;	/* Skip 'f' */
+
+				/* Skip whitespace */
+				while (*n == ' ')
+					n++;
+
+				filename = n;
+				i = 0;	
+				while (*n && *n != ' ' && *n != '\n') {
+					i++;
+					n++;
+				}
+				*n++ = '\0';
+
+				*name = malloc(i + 1);
+				if (!*name) {
+					Print(L"Unable to alloc filename memory\n");
+					goto fail;
+				}
+				*name[i--] = '\0';
+
+				StrCpy(*name, filename);
+				break;
+			case 'l':
+				list_boot_devices();
+				goto out;
+			case 'm':
+				print_memory_map();
+				n++;
+				break;
+			default:
+				Print(L"Unknown command-line switch\n");
+				goto fail;
+			}
+		} else {
+			char *s1;
+			CHAR16 *s2;
+			int j;
+
+			j = StrLen(n);
+			*cmdline = malloc(j + 1);
+			if (!*cmdline) {
+				Print(L"Unable to alloc cmdline memory\n");
+				goto fail;
+			}
+			
+			s1 = *cmdline;
+			s2 = n;
+
+			while (j--)
+				*s1++ = *s2++;
+
+			*s1 = '\0';
+
+			/* Consume the rest of the args */
+			n = &options[size] + 1;
+		}
+	}
+
+	if (!filename)
+		goto fail;
+
+	return EFI_SUCCESS;
+
+fail:
+	Print(L"usage: efilinux [-hlm] -f <filename> <args>\n\n");
+	Print(L"\t-h:             display this help menu\n");
+	Print(L"\t-l:             list boot devices\n");
+	Print(L"\t-m:             print memory map\n");
+	Print(L"\t-f <filename>:  image to load\n");
+	Print(L"Error");
+
+out:
+	return EFI_INVALID_PARAMETER;
+}
+
 /**
  * efi_main - The entry point for the OS loader image.
  * @image: firmware-allocated handle that identifies the image
@@ -158,6 +262,9 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 {
 	WCHAR *error_buf;
 	EFI_STATUS err;
+	EFI_LOADED_IMAGE *info;
+	CHAR16 *name;
+	char *cmdline;
 
 	InitializeLib(image, _table);
 	sys_table = _table;
@@ -167,13 +274,18 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 	if (CheckCrc(sys_table->Hdr.HeaderSize, &sys_table->Hdr) != TRUE)
 		return EFI_LOAD_ERROR;
 
-	Print(L"efilinux loader\n");
+	Print(banner);
 
-	err = print_memory_map();
+	err = fs_init();
 	if (err != EFI_SUCCESS)
 		goto failed;
 
-	err = fs_init();
+	err = handle_protocol(image, &LoadedImageProtocol, (void **)&info);
+	if (err != EFI_SUCCESS)
+		goto failed;
+
+	err = parse_args(info->LoadOptions, info->LoadOptionsSize,
+			 &name, &cmdline);
 	if (err != EFI_SUCCESS)
 		goto failed;
 
