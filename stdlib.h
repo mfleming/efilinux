@@ -4,6 +4,9 @@
 extern void *malloc(UINTN size);
 extern void free(void *buf);
 
+extern EFI_STATUS emalloc(UINTN, UINTN, EFI_PHYSICAL_ADDRESS *);
+extern void efree(EFI_PHYSICAL_ADDRESS, UINTN);
+
 static inline void memset(char *dst, char ch, UINTN size)
 {
 	int i;

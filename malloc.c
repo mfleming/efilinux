@@ -32,7 +32,87 @@
  */
 
 #include <efi.h>
+#include <efilib.h>
 #include "efilinux.h"
+
+/**
+ * emalloc - Allocate memory with a strict alignment requirement
+ * @size: size in bytes of the requested allocation
+ * @align: the required alignment of the allocation
+ * @addr: a pointer to the allocated address on success
+ *
+ * If we cannot satisfy @align we return 0.
+ */
+EFI_STATUS emalloc(UINTN size, UINTN align, EFI_PHYSICAL_ADDRESS *addr)
+{
+	UINTN map_size, map_key, desc_size;
+	EFI_MEMORY_DESCRIPTOR *map_buf;
+	EFI_PHYSICAL_ADDRESS d, map_end;
+	UINT32 desc_version;
+	EFI_STATUS err;
+	UINTN nr_pages = EFI_SIZE_TO_PAGES(size);
+
+	err = memory_map(&map_buf, &map_size, &map_key,
+			 &desc_size, &desc_version);
+	if (err != EFI_SUCCESS)
+		goto fail;
+
+	d = (EFI_PHYSICAL_ADDRESS)map_buf;
+	map_end = (EFI_PHYSICAL_ADDRESS)map_buf + map_size;
+
+	for (; d < map_end; d += desc_size) {
+		EFI_MEMORY_DESCRIPTOR *desc;
+		EFI_PHYSICAL_ADDRESS start, end, aligned;
+
+		desc = (EFI_MEMORY_DESCRIPTOR *)d;
+		if (desc->Type != EfiConventionalMemory)
+			continue;
+
+		if (desc->NumberOfPages < nr_pages)
+			continue;
+
+		start = desc->PhysicalStart;
+		end = start + (desc->NumberOfPages << EFI_PAGE_SHIFT);
+
+		/* Low-memory is super-precious! */
+		if (end <= 1 << 20)
+			continue;
+		if (start < 1 << 20) {
+			size -= (1 << 20) - start;
+			start = (1 << 20);
+		}
+
+		aligned = (start + align -1) & ~(align -1);
+
+		if ((aligned + size) <= end) {
+			err = allocate_pages(AllocateAddress, EfiLoaderData,
+					     nr_pages, &aligned);
+			if (err == EFI_SUCCESS) {
+				*addr = aligned;
+				break;
+			}
+		}
+	}
+
+	if (d == map_end)
+		err = EFI_OUT_OF_RESOURCES;
+
+	free_pool(map_buf);
+fail:
+	return err;
+}
+
+/**
+ * efree - Return memory allocated with emalloc
+ * @memory: the address of the emalloc() allocation
+ * @size: the size of the allocation
+ */
+void efree(EFI_PHYSICAL_ADDRESS memory, UINTN size)
+{
+	UINTN nr_pages = EFI_SIZE_TO_PAGES(size);
+
+	free_pages(memory, nr_pages);
+}
 
 /**
  * malloc - Allocate memory from the EfiLoaderData pool
@@ -55,6 +135,7 @@ void *malloc(UINTN size)
 
 /**
  * free - Release memory to the EfiLoaderData pool
+ * @buffer: pointer to the malloc() allocation to free
  */
 void free(void *buffer)
 {
