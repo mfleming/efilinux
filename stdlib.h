@@ -20,4 +20,16 @@ static inline void memcpy(char *dst, char *src, UINTN size)
 		*dst++ = *src++;
 }
 
+static inline int strlen(char *str)
+{
+	int len;
+
+	len = 0;
+	while (*str++)
+		len++;
+
+	return len;
+}
+
+
 #endif /* __STDLIB_H__ */
