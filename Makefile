@@ -53,7 +53,7 @@ LDSCRIPT=$(LIBDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
 CFLAGS=-I. -I/usr/include/efi -I/usr/include/efi/$(ARCH) \
 		-DEFI_FUNCTION_WRAPPER -fPIC -fshort-wchar -ffreestanding \
-		-Wall -Ifs/ -Iloaders/ -D$(ARCH)
+		-Wall -Ifs/ -Iloaders/ -D$(ARCH) -Werror
 LDFLAGS=-T $(LDSCRIPT) -Bsymbolic -shared -nostdlib -L$(LIBDIR) $(CRT0)
 
 IMAGE=efilinux.efi
