@@ -149,7 +149,13 @@ get_memory_map(UINTN *size, EFI_MEMORY_DESCRIPTOR *map, UINTN *key,
 }
 
 /**
- * exit_boot_serivces - 
+ * exit_boot_serivces - Terminate all boot services
+ * @image: firmware-allocated handle that identifies the image
+ * @key: key to the latest memory map
+ *
+ * This function is called when efilinux wants to take complete
+ * control of the system. efilinux should not make calls to boot time
+ * services after this function is called.
  */
 static inline EFI_STATUS
 exit_boot_services(EFI_HANDLE image, UINTN key)
