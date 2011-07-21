@@ -184,17 +184,6 @@ exit(EFI_HANDLE image, EFI_STATUS status, UINTN size, CHAR16 *reason)
 
 #define PAGE_SIZE	4096
 
-/*
- * Convert bytes into pages
- */
-static inline UINTN num_pages(UINTN size)
-{
-	UINTN pages;
-
-	pages = ((size + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1));
-	return (pages /= PAGE_SIZE);
-}
-
 static const CHAR16 *memory_types[] = {
 	L"EfiReservedMemoryType",
 	L"EfiLoaderCode",
