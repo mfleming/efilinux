@@ -150,6 +150,7 @@ static EFI_STATUS print_memory_map(void)
 		i++;
 	}
 
+	free_pool(buf);
 	return err;
 }
 
