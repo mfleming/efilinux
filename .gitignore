@@ -1,0 +1,6 @@
+*.o
+*.so
+*.efi
+*GTAGS
+*GPATH
+*GRTAGS
