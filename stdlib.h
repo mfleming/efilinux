@@ -34,5 +34,25 @@ static inline int strlen(char *str)
 	return len;
 }
 
+static inline char *strstr(char *haystack, char *needle)
+{
+	char *p;
+	char *word = NULL;
+	int len = strlen(needle);
+
+	if (!len)
+		return NULL;
+
+	p = haystack;
+	while (*p) {
+		word = p;
+		if (!strncmpa((CHAR8 *)p, (CHAR8 *)needle, len))
+			break;
+		p++;
+		word = NULL;
+	}
+
+	return word;
+}
 
 #endif /* __STDLIB_H__ */
