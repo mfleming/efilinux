@@ -42,6 +42,9 @@
 #ifndef __EFILINUX_H__
 #define __EFILINUX_H__
 
+#define EFILINUX_VERSION_MAJOR 0
+#define EFILINUX_VERSION_MINOR 8
+
 extern EFI_SYSTEM_TABLE *sys_table;
 extern EFI_BOOT_SERVICES *boot;
 extern EFI_RUNTIME_SERVICES *runtime;
