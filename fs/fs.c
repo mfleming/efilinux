@@ -66,6 +66,25 @@ file_open(CHAR16 *name, struct file **file)
 	if (!f)
 		return EFI_OUT_OF_RESOURCES;
 
+	for (dev_len = 0; name[dev_len]; ++dev_len) {
+		if (name[dev_len] == ':')
+			break;
+	}
+
+	if (!name[dev_len] || !dev_len)
+		goto notfound;
+
+	name[dev_len] = 0;
+
+	if (name[0] >= '0' && name[0] <= '9') {
+		i = Atoi(name);
+		if (i >= nr_fs_devices)
+			goto notfound;
+
+		f->handle = fs_devices[i].fh;
+		goto found;
+	}
+
 	for (i = 0; i < nr_fs_devices; i++) {
 		EFI_DEVICE_PATH *path;
 		CHAR16 *dev;
@@ -73,9 +92,8 @@ file_open(CHAR16 *name, struct file **file)
 		path = DevicePathFromHandle(fs_devices[i].handle);
 		dev = DevicePathToStr(path);
 
-		if (!StrnCmp(dev, name, StrLen(dev))) {
+		if (!StriCmp(dev, name)) {
 			f->handle = fs_devices[i].fh;
-			dev_len = StrLen(dev);
 			free_pool(dev);
 			break;
 		}
@@ -83,13 +101,12 @@ file_open(CHAR16 *name, struct file **file)
 		free_pool(dev);
 	}
 
-	if (i == nr_fs_devices) {
-		err = EFI_NOT_FOUND;
-		goto fail;
-	}
+	if (i == nr_fs_devices)
+		goto notfound;
 
+found:
 	/* Strip the device name */
-	filename = name + dev_len;
+	filename = name + dev_len + 1;
 
 	/* skip any path separators */
 	while (*filename == ':' || *filename == '\\')
@@ -104,6 +121,9 @@ file_open(CHAR16 *name, struct file **file)
 	*file = f;
 
 	return err;
+
+notfound:
+	err = EFI_NOT_FOUND;
 fail:
 	Print(L"Unable to open file \"%s\"", name);
 	free(f);
