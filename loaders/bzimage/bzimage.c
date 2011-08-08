@@ -69,7 +69,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	EFI_STATUS err;
 	UINTN size = 0;
 	char *initrd;
-	int i;
+	int i, j = 0;
 
 	err = file_open(name, &file);
 	if (err != EFI_SUCCESS)
@@ -370,13 +370,18 @@ again:
 			continue;
 		}
 
-		e820_map->addr = d->PhysicalStart;
-		e820_map->size = d->NumberOfPages << EFI_PAGE_SHIFT;
-		e820_map->type = e820_type;
-		e820_map++;
+		if (j && e820_map[j-1].type == e820_type &&
+			(e820_map[j-1].addr + e820_map[j-1].size) == d->PhysicalStart) {
+			e820_map[j-1].size += d->NumberOfPages << EFI_PAGE_SHIFT;
+		} else {
+			e820_map[j].addr = d->PhysicalStart;
+			e820_map[j].size = d->NumberOfPages << EFI_PAGE_SHIFT;
+			e820_map[j].type = e820_type;
+			j++;
+		}
 	}
 
-	boot_params->e820_entries = i;
+	boot_params->e820_entries = j;
 
 	asm volatile ("lidt %0" :: "m" (idt));
 	asm volatile ("lgdt %0" :: "m" (gdt));
