@@ -366,7 +366,6 @@ again:
 			break;
 
 		default:
-			Print(L"Invalid EFI memory descriptor type!\n");
 			continue;
 		}
 
@@ -387,8 +386,6 @@ again:
 	asm volatile ("lgdt %0" :: "m" (gdt));
 
 	kernel_jump(kernel_start, boot_params);
-
-	Print(L"Error: bzImage returned control to efilinux!");
 out:
 	return err;
 }
