@@ -337,15 +337,15 @@ again:
 		d = (EFI_MEMORY_DESCRIPTOR *)((unsigned long)map_buf + (i * desc_size));
 		switch(d->Type) {
 		case EfiReservedMemoryType:
+		case EfiRuntimeServicesCode:
 		case EfiRuntimeServicesData:
-		case EfiUnusableMemory:
 		case EfiMemoryMappedIO:
 		case EfiMemoryMappedIOPortSpace:
 		case EfiPalCode:
 			e820_type = E820_RESERVED;
 			break;
 
-		case EfiRuntimeServicesCode:
+		case EfiUnusableMemory:
 			e820_type = E820_UNUSABLE;
 			break;
 
