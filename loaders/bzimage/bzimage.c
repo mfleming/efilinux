@@ -162,9 +162,9 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 			}
 			rd = (void *)(UINTN)addr;
 
-			if ((UINT32)(UINT64)rd > buf->hdr.ramdisk_max) {
+			if ((UINTN)rd > buf->hdr.ramdisk_max) {
 				Print(L"ramdisk address is too high!\n");
-				efree((EFI_PHYSICAL_ADDRESS)rd, size);
+				efree((UINTN)rd, size);
 				file_close(rdfile);
 				goto out;
 			}
@@ -175,7 +175,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 			if (err != EFI_SUCCESS)
 				goto out;
 
-			buf->hdr.ramdisk_start = (UINT32)(UINT64)rd;
+			buf->hdr.ramdisk_start = (UINT32)(UINTN)rd;
 			buf->hdr.ramdisk_len = size;
 		}
 	} else {
@@ -183,7 +183,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 		buf->hdr.ramdisk_len = 0;
 	}
 	
-	buf->hdr.cmd_line_ptr = (UINT32)(UINT64)cmdline;
+	buf->hdr.cmd_line_ptr = (UINT32)(UINTN)cmdline;
 	buf->hdr.cmdline_size = strlen(cmdline);
 
 	memset((char *)&buf->screen_info, 0x0, sizeof(buf->screen_info));
@@ -272,15 +272,15 @@ again:
 	 *
 	 * Print a warning and hope for the best.
 	 */
-	if (kernel_start < (EFI_PHYSICAL_ADDRESS)boot_params ||
-	    kernel_start < (EFI_PHYSICAL_ADDRESS)map_buf ||
-	    kernel_start < (EFI_PHYSICAL_ADDRESS)gdt.base)
+	if (kernel_start < (UINTN)boot_params ||
+	    kernel_start < (UINTN)map_buf ||
+	    kernel_start < (UINTN)gdt.base)
 	    Print(L"Warning: kernel_start is too low.\n");
 
 	/*
 	 * Read the rest of the kernel image.
 	 */
-	err = file_read(file, &size, (void *)kernel_start);
+	err = file_read(file, &size, (void *)(UINTN)kernel_start);
 	if (err != EFI_SUCCESS)
 		goto out;
 
@@ -304,7 +304,7 @@ again:
 			 * call to memory_map().
 			 */
 			efree(kernel_start, 0x800000);
-			efree((EFI_PHYSICAL_ADDRESS)map_buf, _map_size);
+			efree((UINTN)map_buf, _map_size);
 			file_set_position(file, (UINT64)nr_setup_secs * 512);
 			goto again;
 		}
@@ -316,10 +316,10 @@ again:
 		goto out;
 
 	efi = &boot_params->efi_info;
-	efi->efi_systab = (UINT32)(UINT64)sys_table;
+	efi->efi_systab = (UINT32)(UINTN)sys_table;
 	efi->efi_memdesc_size = desc_size;
 	efi->efi_memdesc_version = desc_version;
-	efi->efi_memmap = (UINT32)(UINT64)map_buf;
+	efi->efi_memmap = (UINT32)(UINTN)map_buf;
 	efi->efi_memmap_size = map_size;
 	efi->efi_systab_hi = (unsigned long)sys_table >> 32;
 	efi->efi_memmap_hi = (unsigned long)map_buf >> 32;
