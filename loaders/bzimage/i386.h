@@ -36,4 +36,14 @@
 
 #define EFI_LOADER_SIGNATURE	"EL32"
 
+static inline void kernel_jump(EFI_PHYSICAL_ADDRESS kernel_start,
+			       struct boot_params *boot_params)
+{
+	asm volatile ("cli		\n"
+		      "movl %0, %%esi	\n"
+		      "movl %1, %%ecx	\n"
+		      "jmp *%%ecx	\n"
+		      :: "m" (boot_params), "m" (kernel_start));
+}
+
 #endif /* __I386_H__ */
