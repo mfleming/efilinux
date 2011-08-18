@@ -169,7 +169,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 				goto out;
 			}
 
-			err = file_read(rdfile, &size, rd);
+			err = file_read(rdfile, (UINTN *)&size, rd);
 			file_close(rdfile);
 
 			if (err != EFI_SUCCESS)
