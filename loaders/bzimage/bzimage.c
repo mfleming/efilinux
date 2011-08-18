@@ -137,7 +137,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 		/* Make sure the initrd string is valid */
 		if (*initrd++ == '=') {
 			CHAR16 filename[MAX_FILENAME], *n;
-			struct file *file;
+			struct file *rdfile;
 			char *o, *p;
 			UINT64 size;
 			void *rd;
@@ -150,26 +150,26 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 				*n = *o;
 
 			*n = '\0';
-			err = file_open(filename, &file);
+			err = file_open(filename, &rdfile);
 			if (err != EFI_SUCCESS)
 				goto out;
 
-			file_size(file, &size);
+			file_size(rdfile, &size);
 			err = emalloc(size, 1, (EFI_PHYSICAL_ADDRESS *)&rd);
 			if (err != EFI_SUCCESS) {
-				file_close(file);
+				file_close(rdfile);
 				goto out;
 			}
 
 			if ((UINT32)(UINT64)rd > buf->hdr.ramdisk_max) {
 				Print(L"ramdisk address is too high!\n");
 				efree((EFI_PHYSICAL_ADDRESS)rd, size);
-				file_close(file);
+				file_close(rdfile);
 				goto out;
 			}
 
-			err = file_read(file, &size, rd);
-			file_close(file);
+			err = file_read(rdfile, &size, rd);
+			file_close(rdfile);
 
 			if (err != EFI_SUCCESS)
 				goto out;
