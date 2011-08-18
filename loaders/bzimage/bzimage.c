@@ -56,7 +56,7 @@ EFI_STATUS
 load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 {
 	UINTN map_size, _map_size, map_key;
-	EFI_PHYSICAL_ADDRESS kernel_start;
+	EFI_PHYSICAL_ADDRESS kernel_start, addr;
 	struct boot_params *boot_params;
 	EFI_MEMORY_DESCRIPTOR *map_buf;
 	struct e820_entry *e820_map;
@@ -155,11 +155,12 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 				goto out;
 
 			file_size(rdfile, &size);
-			err = emalloc(size, 1, (EFI_PHYSICAL_ADDRESS *)&rd);
+			err = emalloc(size, 1, &addr);
 			if (err != EFI_SUCCESS) {
 				file_close(rdfile);
 				goto out;
 			}
+			rd = (void *)(UINTN)addr;
 
 			if ((UINT32)(UINT64)rd > buf->hdr.ramdisk_max) {
 				Print(L"ramdisk address is too high!\n");
@@ -204,9 +205,11 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	 *
 	 * Max kernel size is 8MB
 	 */
-	err = emalloc(16384, 1, (EFI_PHYSICAL_ADDRESS *)&boot_params);
+	err = emalloc(16384, 1, &addr);
 	if (err != EFI_SUCCESS)
 		goto out;
+
+	boot_params = (struct boot_params *)(UINTN)addr;
 
 	memset((void *)boot_params, 0x0, 16384);
 
@@ -252,10 +255,11 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 
 again:
 	_map_size = map_size;
-	err = emalloc(map_size, 1, (EFI_PHYSICAL_ADDRESS *)&map_buf);
+	err = emalloc(map_size, 1, &addr);
 	if (err != EFI_SUCCESS)
 		goto out;
 
+	map_buf = (EFI_MEMORY_DESCRIPTOR *)(UINTN)addr;
 	size = 0x800000;
 	err = emalloc(size, buf->hdr.kernel_alignment, &kernel_start);
 	if (err != EFI_SUCCESS)
