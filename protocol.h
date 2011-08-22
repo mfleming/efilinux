@@ -51,19 +51,6 @@ handle_protocol(EFI_HANDLE handle, EFI_GUID *protocol, void **interface)
 }
 
 /**
- * locate_protocol - Returns the first protocol instance for @protocol
- * @protocol: the protocol to search for
- * @registration: optional registration key
- * @interface: used to return a pointer to the first matching interface
- */
-static inline EFI_STATUS
-locate_protocol(EFI_GUID *protocol, void *registration, void **interface)
-{
-	return uefi_call_wrapper(boot->LocateProtocol, 3, protocol,
-				 registration, interface);
-}
-
-/**
  * locate_handle - Search for handles that support @protocol
  * @type: the search type, which handles are returned
  * @protocol: the protocol to search by (only valid if @type is ByProtocol)
