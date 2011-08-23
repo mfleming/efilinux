@@ -179,9 +179,10 @@ void list_boot_devices(void)
 EFI_STATUS
 fs_init(void)
 {
+	EFI_HANDLE *buf;
 	EFI_STATUS err;
 	UINTN size = 0;
-	int i;
+	int i, j;
 
 	size = 0;
 	err = locate_handle(ByProtocol, &FileSystemProtocol,
@@ -189,37 +190,56 @@ fs_init(void)
 
 	if (err != EFI_SUCCESS && size == 0) {
 		Print(L"No devices support filesystems\n");
-		goto out;
+		return err;
 	}
+
+	buf = malloc(size);
+	if (!buf)
+		return EFI_OUT_OF_RESOURCES;
 
 	nr_fs_devices = size / sizeof(EFI_HANDLE);
 	fs_devices = malloc(sizeof(*fs_devices) * nr_fs_devices);
-	if (!fs_devices)
+	if (!fs_devices) {
+		err = EFI_OUT_OF_RESOURCES;
 		goto out;
+	}
 
 	err = locate_handle(ByProtocol, &FileSystemProtocol,
-			    NULL, &size, (void **)fs_devices);
+			    NULL, &size, (void **)buf);
 
 	for (i = 0; i < nr_fs_devices; i++) {
 		EFI_FILE_IO_INTERFACE *io;
 		EFI_FILE_HANDLE fh;
 		EFI_HANDLE dev_handle;
 
-		dev_handle = fs_devices[i].handle;
+		dev_handle = buf[i];
 		err = handle_protocol(dev_handle, &FileSystemProtocol,
 				      (void **)&io);
 		if (err != EFI_SUCCESS)
-			goto out;
+			goto close_handles;
 
 		err = volume_open(io, &fh);
 		if (err != EFI_SUCCESS)
-			goto out;
+			goto close_handles;
 
+		fs_devices[i].handle = dev_handle;
 		fs_devices[i].fh = fh;
 	}
 
 out:
+	free(buf);
 	return err;
+
+close_handles:
+	for (j = 0; j < i; j++) {
+		EFI_FILE_HANDLE fh;
+
+		fh = fs_devices[j].fh;
+		uefi_call_wrapper(fh->Close, 1, fh);
+	}
+
+	free(fs_devices);
+	goto out;
 }
 
 void fs_exit(void)
