@@ -157,8 +157,12 @@ static EFI_STATUS print_memory_map(void)
 static EFI_STATUS
 parse_args(CHAR16 *options, UINT32 size, CHAR16 **name, char **cmdline)
 {
-	CHAR16 *n, *filename = NULL;
+	CHAR16 *n, *o, *filename = NULL;
+	EFI_STATUS err;
 	int i;
+
+	*cmdline = NULL;
+	*name = NULL;
 
 	if (!options || size == 0)
 		goto fail;
@@ -193,18 +197,20 @@ parse_args(CHAR16 *options, UINT32 size, CHAR16 **name, char **cmdline)
 				}
 				*n++ = '\0';
 
-				*name = malloc(i + 1);
-				if (!*name) {
+				o = malloc(sizeof(*o) * (i + 1));
+				if (!o) {
 					Print(L"Unable to alloc filename memory\n");
-					goto fail;
+					err = EFI_OUT_OF_RESOURCES;
+					goto out;
 				}
-				*name[i--] = '\0';
+				o[i--] = '\0';
 
-				StrCpy(*name, filename);
+				StrCpy(o, filename);
+				*name = o;
 				break;
 			case 'l':
 				list_boot_devices();
-				goto out;
+				goto fail;
 			case 'm':
 				print_memory_map();
 				n++;
@@ -250,9 +256,15 @@ fail:
 	Print(L"\t-m:             print memory map\n");
 	Print(L"\t-f <filename>:  image to load\n");
 	Print(L"Error");
+	err = EFI_INVALID_PARAMETER;
 
+	if (*cmdline)
+		free(*cmdline);
+
+	if (*name)
+		free(*name);
 out:
-	return EFI_INVALID_PARAMETER;
+	return err;
 }
 
 /**
