@@ -297,19 +297,24 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 
 	err = handle_protocol(image, &LoadedImageProtocol, (void **)&info);
 	if (err != EFI_SUCCESS)
-		goto failed;
+		goto fs_deinit;
 
 	err = parse_args(info->LoadOptions, info->LoadOptionsSize,
 			 &name, &cmdline);
 	if (err != EFI_SUCCESS)
-		goto failed;
+		goto fs_deinit;
 
 	err = load_image(image, name, cmdline);
 	if (err != EFI_SUCCESS)
-		goto failed;
+		goto free_args;
 
 	return EFI_SUCCESS;
 
+free_args:
+	free(cmdline);
+	free(name);
+fs_deinit:
+	fs_exit();
 failed:
 	/*
 	 * We need to be careful not to trash 'err' here. If we fail

@@ -238,12 +238,6 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	/* Task segment value */
 	gdt.base[4] = 0x0080890000000000;
 
-	/*
-	 * Free any memory that we will no longer need once we jump to
-	 * the kernel entry point.
-	 */
-	fs_exit();
-
 	/* We're just interested in the map's size for now */
 	map_size = 0;
 	err = get_memory_map(&map_size, NULL, NULL, NULL, NULL);
@@ -306,6 +300,9 @@ again:
 		}
 		goto out;
 	}
+
+	/* Close all open file handles */
+	fs_close();
 
 	err = exit_boot_services(image, map_key);
 	if (err != EFI_SUCCESS)

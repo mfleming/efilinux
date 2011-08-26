@@ -242,7 +242,20 @@ close_handles:
 	goto out;
 }
 
+void fs_close(void)
+{
+	int i;
+
+	for (i = 0; i < nr_fs_devices; i++) {
+		EFI_FILE_HANDLE fh;
+
+		fh = fs_devices[i].fh;
+		uefi_call_wrapper(fh->Close, 1, fh);
+	}
+}
+
 void fs_exit(void)
 {
+	fs_close();
 	free(fs_devices);
 }

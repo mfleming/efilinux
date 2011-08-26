@@ -103,6 +103,8 @@ extern EFI_STATUS file_close(struct file *f);
 
 extern void list_boot_devices(void);
 
+extern void fs_close(void);
+
 extern EFI_STATUS fs_init(void);
 extern void fs_exit(void);
 
