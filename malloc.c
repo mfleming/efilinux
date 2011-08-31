@@ -47,7 +47,7 @@ EFI_STATUS emalloc(UINTN size, UINTN align, EFI_PHYSICAL_ADDRESS *addr)
 {
 	UINTN map_size, map_key, desc_size;
 	EFI_MEMORY_DESCRIPTOR *map_buf;
-	EFI_PHYSICAL_ADDRESS d, map_end;
+	UINTN d, map_end;
 	UINT32 desc_version;
 	EFI_STATUS err;
 	UINTN nr_pages = EFI_SIZE_TO_PAGES(size);
@@ -57,8 +57,8 @@ EFI_STATUS emalloc(UINTN size, UINTN align, EFI_PHYSICAL_ADDRESS *addr)
 	if (err != EFI_SUCCESS)
 		goto fail;
 
-	d = (EFI_PHYSICAL_ADDRESS)map_buf;
-	map_end = (EFI_PHYSICAL_ADDRESS)map_buf + map_size;
+	d = (UINTN)map_buf;
+	map_end = (UINTN)map_buf + map_size;
 
 	for (; d < map_end; d += desc_size) {
 		EFI_MEMORY_DESCRIPTOR *desc;
