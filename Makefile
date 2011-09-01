@@ -36,10 +36,10 @@
 
 OBJCOPY=objcopy
 
-MACHINE=$(shell $(CC) -dumpmachine | sed "s/\(-\).*$$//")
+HOST  = $(shell $(CC) -dumpmachine | sed "s/\(-\).*$$//")
+ARCH := $(shell $(CC) -dumpmachine | sed "s/\(-\).*$$//")
 
-ifeq ($(MACHINE),x86_64)
-	ARCH=$(MACHINE)
+ifeq ($(ARCH),x86_64)
 	LIBDIR=/usr/lib64
 	FORMAT=efi-app-x86-64
 else
@@ -54,6 +54,13 @@ LDSCRIPT=$(LIBDIR)/gnuefi/elf_$(ARCH)_efi.lds
 CFLAGS=-I. -I/usr/include/efi -I/usr/include/efi/$(ARCH) \
 		-DEFI_FUNCTION_WRAPPER -fPIC -fshort-wchar -ffreestanding \
 		-Wall -Ifs/ -Iloaders/ -D$(ARCH) -Werror
+
+ifeq ($(ARCH),ia32)
+	ifeq ($(HOST),x86_64)
+		CFLAGS += -m32
+	endif
+endif
+
 LDFLAGS=-T $(LDSCRIPT) -Bsymbolic -shared -nostdlib -znocombreloc \
 		-L$(LIBDIR) $(CRT0)
 
@@ -70,7 +77,7 @@ all: $(IMAGE)
 efilinux.efi: efilinux.so
 
 efilinux.so: $(OBJS) $(FS) $(LOADERS)
-	$(LD) $(LDFLAGS) -o $@ $^  -lgnuefi -lefi $(shell $(CC) -print-libgcc-file-name)
+	$(LD) $(LDFLAGS) -o $@ $^  -lgnuefi -lefi $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
 
 clean:
 	rm -f $(IMAGE) efilinux.so $(OBJS) $(FS) $(LOADERS)
