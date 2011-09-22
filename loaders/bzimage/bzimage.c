@@ -49,6 +49,120 @@
 dt_addr_t gdt = { 0x800, (UINT64 *)0 };
 dt_addr_t idt = { 0, 0 };
 
+struct initrd {
+	UINT64 size;
+	struct file *file;
+};
+
+static void parse_initrd(struct boot_params *buf, char *cmdline)
+{
+	EFI_PHYSICAL_ADDRESS addr;
+	struct initrd *initrds;
+	int nr_initrds;
+	EFI_STATUS err;
+	UINT64 size;
+	char *initrd;
+	int i, j;
+
+	/*
+	 * Has there been an initrd specified on the cmdline?
+	 */
+	buf->hdr.ramdisk_start = 0;
+	buf->hdr.ramdisk_len = 0;
+
+	initrd = cmdline;
+	for (nr_initrds = 0; *initrd; nr_initrds++) {
+		initrd = strstr(initrd, "initrd=");
+		if (!initrd)
+			break;
+
+		initrd += strlen("initrd=");
+
+		/* Consume filename */
+		while (*initrd && *initrd != ' ')
+			initrd++;
+
+		/* Consume space */
+		while (*initrd == ' ')
+			initrd++;
+	}
+
+	if (!nr_initrds)
+		return;
+
+	initrds = malloc(sizeof(*initrds) * nr_initrds);
+	if (!initrds)
+		return;
+
+	initrd = cmdline;
+	for (i = 0; i < nr_initrds; i++) {
+		CHAR16 filename[MAX_FILENAME], *n;
+		struct initrd *rd = &initrds[i];
+		struct file *rdfile;
+		char *o, *p;
+
+		initrd = strstr(initrd, "initrd=");
+		if (!initrd)
+			break;
+
+		initrd += strlen("initrd=");
+		p = initrd;
+		while (*p && *p != ' ')
+			p++;
+
+		for (o = initrd, n = filename;
+		     o != p; o++, n++)
+			*n = *o;
+
+		*n = '\0';
+
+		err = file_open(filename, &rdfile);
+		if (err != EFI_SUCCESS)
+			goto close_handles;
+
+		file_size(rdfile, &size);
+
+		rd->size = size;
+		rd->file = rdfile;
+
+		buf->hdr.ramdisk_len += size;
+	}
+
+	size = buf->hdr.ramdisk_len;
+	err = emalloc(size, 0x1000, &addr);
+	if (err != EFI_SUCCESS)
+		goto close_handles;
+
+	if ((UINTN)addr > buf->hdr.ramdisk_max) {
+		Print(L"ramdisk address is too high!\n");
+		efree(addr, size);
+		goto close_handles;
+	}
+
+	buf->hdr.ramdisk_start = (UINT32)(UINTN)addr;
+
+	for (j = 0; j < nr_initrds; j++) {
+		struct initrd *rd = &initrds[j];
+
+		size = rd->size;
+		err = file_read(rd->file, (UINTN *)&size, (void *)(UINTN)addr);
+		if (err != EFI_SUCCESS) {
+			efree(addr, size);
+			goto close_handles;
+		}
+
+		addr += size;
+	}
+
+close_handles:
+	for (j = 0; j < i; j++) {
+		struct initrd *rd = &initrds[j];
+		file_close(rd->file);
+	}
+
+	free(initrds);
+}
+
 /**
  * load_kernel - Load a kernel image into memory from the boot device
  */
@@ -68,7 +182,6 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	UINTN desc_size;
 	EFI_STATUS err;
 	UINTN size = 0;
-	char *initrd;
 	int i, j = 0;
 
 	err = file_open(name, &file);
@@ -127,64 +240,9 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	/* Don't need an allocated ID, we're a prototype */
 	buf->hdr.loader_id = 0x1;
 
-	/*
-	 * Has there been an initrd specified on the cmdline?
-	 */
-	initrd = strstr(cmdline, "initrd");
-	if (initrd) {
-		initrd += strlen("initrd");
+	parse_initrd(buf, cmdline);
 
-		/* Make sure the initrd string is valid */
-		if (*initrd++ == '=') {
-			CHAR16 filename[MAX_FILENAME], *n;
-			struct file *rdfile;
-			char *o, *p;
-			UINT64 size;
-			void *rd;
-
-			p = initrd;
-			while (*p && *p != ' ')
-				p++;
-
-			for (o = initrd, n = filename; o != p; o++, n++)
-				*n = *o;
-
-			*n = '\0';
-			err = file_open(filename, &rdfile);
-			if (err != EFI_SUCCESS)
-				goto out;
-
-			file_size(rdfile, &size);
-			err = emalloc(size, 1, &addr);
-			if (err != EFI_SUCCESS) {
-				file_close(rdfile);
-				goto out;
-			}
-			rd = (void *)(UINTN)addr;
-
-			if ((UINTN)rd > buf->hdr.ramdisk_max) {
-				Print(L"ramdisk address is too high!\n");
-				efree((UINTN)rd, size);
-				file_close(rdfile);
-				goto out;
-			}
-
-			err = file_read(rdfile, (UINTN *)&size, rd);
-			file_close(rdfile);
-
-			if (err != EFI_SUCCESS)
-				goto out;
-
-			buf->hdr.ramdisk_start = (UINT32)(UINTN)rd;
-			buf->hdr.ramdisk_len = size;
-		}
-	} else {
-		buf->hdr.ramdisk_start = 0;
-		buf->hdr.ramdisk_len = 0;
-	}
-	
 	buf->hdr.cmd_line_ptr = (UINT32)(UINTN)cmdline;
-	buf->hdr.cmdline_size = strlen(cmdline);
 
 	memset((char *)&buf->screen_info, 0x0, sizeof(buf->screen_info));
 
