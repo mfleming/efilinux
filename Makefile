@@ -50,8 +50,9 @@ endif
 
 INCDIR := /usr/include
 
-CRT0 := $(LIBDIR)/gnuefi/crt0-efi-$(ARCH).o
-LDSCRIPT := $(LIBDIR)/gnuefi/elf_$(ARCH)_efi.lds
+# gnuefi sometimes installs these under a gnuefi/ directory, and sometimes not
+CRT0 := $(shell find $(LIBDIR) -name crt0-efi-$(ARCH).o 2>/dev/null | tail -n1)
+LDSCRIPT := $(shell find $(LIBDIR) -name elf_$(ARCH)_efi.lds 2>/dev/null | tail -n1)
 
 CFLAGS=-I. -I$(INCDIR)/efi -I$(INCDIR)/efi/$(ARCH) \
 		-DEFI_FUNCTION_WRAPPER -fPIC -fshort-wchar -ffreestanding \
