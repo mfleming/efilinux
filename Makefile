@@ -48,10 +48,12 @@ else
 	FORMAT=efi-app-$(ARCH)
 endif
 
+INCDIR := /usr/include
+
 CRT0 := $(LIBDIR)/gnuefi/crt0-efi-$(ARCH).o
 LDSCRIPT := $(LIBDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
-CFLAGS=-I. -I/usr/include/efi -I/usr/include/efi/$(ARCH) \
+CFLAGS=-I. -I$(INCDIR)/efi -I$(INCDIR)/efi/$(ARCH) \
 		-DEFI_FUNCTION_WRAPPER -fPIC -fshort-wchar -ffreestanding \
 		-Wall -Ifs/ -Iloaders/ -D$(ARCH) -Werror
 
