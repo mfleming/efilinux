@@ -48,6 +48,26 @@ static struct fs_device *fs_devices;
 static UINTN nr_fs_devices;
 
 /**
+ * handle_to_dev - Return the device number for a handle
+ * @handle: the device handle to search for
+ */
+int
+handle_to_dev(EFI_HANDLE *handle)
+{
+	int i;
+
+	for (i = 0; i < nr_fs_devices; i++) {
+		if (fs_devices[i].handle == handle)
+			break;
+	}
+
+	if (i == nr_fs_devices)
+		return -1;
+
+	return i;
+}
+
+/**
  * file_open - Open a file on a volume
  * @name: pathname of the file to open
  * @file: used to return a pointer to the allocated file on success

@@ -45,6 +45,8 @@
 #define EFILINUX_VERSION_MAJOR 0
 #define EFILINUX_VERSION_MINOR 9
 
+#define EFILINUX_CONFIG	L"efilinux.cfg"
+
 extern EFI_SYSTEM_TABLE *sys_table;
 extern EFI_BOOT_SERVICES *boot;
 extern EFI_RUNTIME_SERVICES *runtime;

@@ -102,6 +102,7 @@ extern EFI_STATUS file_open(CHAR16 *name, struct file **file);
 extern EFI_STATUS file_close(struct file *f);
 
 extern void list_boot_devices(void);
+extern int handle_to_dev(EFI_HANDLE *handle);
 
 extern void fs_close(void);
 
