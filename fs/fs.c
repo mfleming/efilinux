@@ -145,7 +145,6 @@ found:
 notfound:
 	err = EFI_NOT_FOUND;
 fail:
-	Print(L"Unable to open file \"%s\"", name);
 	free(f);
 	return err;
 }
