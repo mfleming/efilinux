@@ -175,14 +175,14 @@ parse_args(CHAR16 *options, UINT32 size, CHAR16 **name, char **cmdline)
 
 	/* No arguments */
 	if (i == size)
-		goto fail;
+		goto usage;
 
 	n = &options[i];
 	while (n <= &options[size]) {
 		if (*n == '-') {
 			switch (*++n) {
 			case 'h':
-				goto fail;
+				goto usage;
 			case 'f':
 				n++;	/* Skip 'f' */
 
@@ -215,10 +215,10 @@ parse_args(CHAR16 *options, UINT32 size, CHAR16 **name, char **cmdline)
 			case 'm':
 				print_memory_map();
 				n++;
-				break;
+				goto fail;
 			default:
 				Print(L"Unknown command-line switch\n");
-				goto fail;
+				goto usage;
 			}
 		} else {
 			char *s1;
@@ -229,7 +229,8 @@ parse_args(CHAR16 *options, UINT32 size, CHAR16 **name, char **cmdline)
 			*cmdline = malloc(j + 1);
 			if (!*cmdline) {
 				Print(L"Unable to alloc cmdline memory\n");
-				goto fail;
+				err = EFI_OUT_OF_RESOURCES;
+				goto free_name;
 			}
 			
 			s1 = *cmdline;
@@ -245,23 +246,23 @@ parse_args(CHAR16 *options, UINT32 size, CHAR16 **name, char **cmdline)
 		}
 	}
 
-	if (!filename)
-		goto fail;
+	if (filename)
+		return EFI_SUCCESS;
 
-	return EFI_SUCCESS;
-
-fail:
+usage:
 	Print(L"usage: efilinux [-hlm] -f <filename> <args>\n\n");
 	Print(L"\t-h:             display this help menu\n");
 	Print(L"\t-l:             list boot devices\n");
 	Print(L"\t-m:             print memory map\n");
 	Print(L"\t-f <filename>:  image to load\n");
-	Print(L"Error");
+
+fail:
 	err = EFI_INVALID_PARAMETER;
 
 	if (*cmdline)
 		free(*cmdline);
 
+free_name:
 	if (*name)
 		free(*name);
 out:
@@ -442,6 +443,13 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 
 	if (options && options_size != 0) {
 		err = parse_args(options, options_size, &name, &cmdline);
+
+		/* We print the usage message in case of invalid args */
+		if (err == EFI_INVALID_PARAMETER) {
+			fs_exit();
+			return EFI_SUCCESS;
+		}
+
 		if (err != EFI_SUCCESS)
 			goto fs_deinit;
 	}
