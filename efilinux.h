@@ -42,8 +42,8 @@
 #ifndef __EFILINUX_H__
 #define __EFILINUX_H__
 
-#define EFILINUX_VERSION_MAJOR 0
-#define EFILINUX_VERSION_MINOR 9
+#define EFILINUX_VERSION_MAJOR 1
+#define EFILINUX_VERSION_MINOR 0
 
 #define EFILINUX_CONFIG	L"efilinux.cfg"
 
