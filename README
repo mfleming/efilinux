@@ -14,5 +14,10 @@ Stable versions can be found at,
 
 	http://www.kernel.org/pub/linux/boot/efilinux/
 
+CONFIGURATION FILE SYNTAX
+
+There is no config syntax as such. A config file is a one-line file
+that contains command line parameters. See example.cfg.
+
 
 Matt Fleming <matt.fleming@intel.com>
