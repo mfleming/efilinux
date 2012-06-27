@@ -171,9 +171,11 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 {
 	UINTN map_size, _map_size, map_key;
 	EFI_PHYSICAL_ADDRESS kernel_start, addr;
+	EFI_PHYSICAL_ADDRESS pref_address;
 	struct boot_params *boot_params;
 	EFI_MEMORY_DESCRIPTOR *map_buf;
 	struct e820_entry *e820_map;
+	UINT64 setup_sz, init_size;
 	struct boot_params *buf;
 	struct efi_info *efi;
 	UINT32 desc_version;
@@ -181,7 +183,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	struct file *file;
 	UINTN desc_size;
 	EFI_STATUS err;
-	UINTN size = 0;
+	UINT64 size;
 	int i, j = 0;
 
 	err = file_open(name, &file);
@@ -193,14 +195,14 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 		goto out;
 
 	size = 1;
-	err = file_read(file, &size, &nr_setup_secs);
+	err = file_read(file, (UINTN *)&size, &nr_setup_secs);
 	if (err != EFI_SUCCESS)
 		goto out;
 
 	nr_setup_secs++;	/* Add the boot sector */
-	size = nr_setup_secs * 512;
+	setup_sz = nr_setup_secs * 512;
 
-	buf = malloc(size);
+	buf = malloc(setup_sz);
 	if (!buf)
 		goto out;
 
@@ -208,9 +210,15 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	if (err != EFI_SUCCESS)
 		goto out;
 
-	err = file_read(file, &size, buf);
+	err = file_read(file, (UINTN *)&setup_sz, buf);
 	if (err != EFI_SUCCESS)
 		goto out;
+
+	err = file_size(file, &size);
+	if (err != EFI_SUCCESS)
+		goto out;
+
+	size -= setup_sz;
 
 	/* Check boot sector signature */
 	if (buf->hdr.signature != 0xAA55) {
@@ -237,6 +245,20 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 		goto out;
 	}
 
+	if (buf->hdr.version >= 0x20a) {
+		pref_address = buf->hdr.pref_address;
+		init_size = buf->hdr.init_size;
+	} else {
+		pref_address = 0x100000;
+
+		/*
+		 * We need to account for the fact that the kernel
+		 * needs room for decompression, otherwise we could
+		 * end up trashing other chunks of allocated memory.
+		 */
+		init_size = size * 3;
+	}
+
 	/* Don't need an allocated ID, we're a prototype */
 	buf->hdr.loader_id = 0x1;
 
@@ -246,23 +268,28 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 
 	memset((char *)&buf->screen_info, 0x0, sizeof(buf->screen_info));
 
-	err = setup_graphics(buf);
+	addr = pref_address;
+	err = allocate_pages(AllocateAddress, EfiLoaderData,
+			     EFI_SIZE_TO_PAGES(init_size), &addr);
+	if (err != EFI_SUCCESS) {
+		/*
+		 * We failed to allocate the preferred address, so
+		 * just allocate some memory and hope for the best.
+		 */
+		err = emalloc(init_size, buf->hdr.kernel_alignment, &addr);
+		if (err != EFI_SUCCESS)
+			goto out;
+	}
+
+	kernel_start = addr;
+
+	/*
+	 * Read the rest of the kernel image.
+	 */
+	err = file_read(file, (UINTN *)&size, (void *)(UINTN)kernel_start);
 	if (err != EFI_SUCCESS)
 		goto out;
 
-	/*
-	 * Time to allocate our memory.
-	 *
-	 * Because the kernel needs to decompress itself we first
-	 * allocate boot_params, gdt and space for the memory map
-	 * under the assumption that they'll be allocated at lower
-	 * addresses than the kernel. If we dont't allocate these data
-	 * structures first there is the potential for them to be
-	 * trashed when the kernel is decompressed! Allocating them
-	 * underneath the kernel should be safe.
-	 *
-	 * Max kernel size is 8MB
-	 */
 	err = emalloc(16384, 1, &addr);
 	if (err != EFI_SUCCESS)
 		goto out;
@@ -273,6 +300,11 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 
 	/* Copy first two sectors to boot_params */
 	memcpy((char *)boot_params, (char *)buf, 2 * 512);
+	boot_params->hdr.code32_start = (UINT32)((UINT64)kernel_start);
+
+	err = setup_graphics(buf);
+	if (err != EFI_SUCCESS)
+		goto out;
 
 	err = emalloc(gdt.limit, 8, (EFI_PHYSICAL_ADDRESS *)&gdt.base);
 	if (err != EFI_SUCCESS)
@@ -312,38 +344,6 @@ again:
 		goto out;
 
 	map_buf = (EFI_MEMORY_DESCRIPTOR *)(UINTN)addr;
-	size = 0x800000;
-	err = emalloc(size, buf->hdr.kernel_alignment, &kernel_start);
-	if (err != EFI_SUCCESS)
-		goto out;
-
-	/*
-	 * If the firmware doesn't sort the memory map by increasing
-	 * address it's possible that kernel_start may have been
-	 * allocated below boot_params or gdt.base.
-	 *
-	 * Print a warning and hope for the best.
-	 */
-	if (kernel_start < (UINTN)boot_params ||
-	    kernel_start < (UINTN)map_buf ||
-	    kernel_start < (UINTN)gdt.base)
-	    Print(L"Warning: kernel_start is too low.\n");
-
-	/*
-	 * Read the rest of the kernel image.
-	 */
-	err = file_read(file, &size, (void *)(UINTN)kernel_start);
-	if (err != EFI_SUCCESS)
-		goto out;
-
-	boot_params->hdr.code32_start = (UINT32)((UINT64)kernel_start);
-
-	/*
-	 * Remember! We've already allocated map_buf with emalloc (and
-	 * 'map_size' contains its size) which means that it should be
-	 * positioned below our allocation for the kernel. Use that
-	 * space for the memory map.
-	 */
 	err = get_memory_map(&map_size, map_buf, &map_key,
 			     &desc_size, &desc_version);
 	if (err != EFI_SUCCESS) {
@@ -355,9 +355,7 @@ again:
 			 * larger. 'map_size' has been updated by the
 			 * call to memory_map().
 			 */
-			efree(kernel_start, 0x800000);
 			efree((UINTN)map_buf, _map_size);
-			file_set_position(file, (UINT64)nr_setup_secs * 512);
 			goto again;
 		}
 		goto out;

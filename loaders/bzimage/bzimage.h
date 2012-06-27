@@ -80,6 +80,8 @@ struct setup_header {
 	UINT32 payload_offset;
 	UINT32 payload_length;
 	UINT64 setup_data;
+	UINT64 pref_address;
+	UINT32 init_size;
 } __attribute__((packed));
 
 struct efi_info {
