@@ -42,4 +42,19 @@ static inline void kernel_jump(EFI_PHYSICAL_ADDRESS kernel_start,
 		      :: "m" (boot_params), "m" (kernel_start));
 }
 
+static inline void handover_jump(EFI_HANDLE image, struct boot_params *bp,
+				 EFI_PHYSICAL_ADDRESS kernel_start)
+{
+	kernel_start += bp->hdr.handover_offset;
+
+	asm volatile ("cli		\n"
+		      "pushl %0         \n"
+		      "pushl %1         \n"
+		      "pushl %2         \n"
+		      "movl %3, %%ecx	\n"
+		      "jmp *%%ecx	\n"
+		      :: "m" (bp), "m" (ST),
+		         "m" (image), "m" (kernel_start));
+}
+
 #endif /* __I386_H__ */

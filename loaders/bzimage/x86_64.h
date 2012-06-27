@@ -33,6 +33,7 @@
 #define EFI_LOADER_SIGNATURE	"EL64"
 
 typedef void(*kernel_func)(void *, struct boot_params *);
+typedef void(*handover_func)(void *, EFI_SYSTEM_TABLE *, struct boot_params *);
 
 static inline void kernel_jump(EFI_PHYSICAL_ADDRESS kernel_start,
 			       struct boot_params *boot_params)
@@ -49,6 +50,21 @@ static inline void kernel_jump(EFI_PHYSICAL_ADDRESS kernel_start,
 	 * boot_params in %[re]si.
 	 */
 	kf(NULL, boot_params);
+}
+
+static inline void handover_jump(EFI_HANDLE image, struct boot_params *bp,
+				 EFI_PHYSICAL_ADDRESS kernel_start)
+{
+	UINT32 offset = bp->hdr.handover_offset;
+	handover_func hf;
+
+	asm volatile ("cli");
+
+	/* The 64-bit kernel entry is 512 bytes after the start. */
+	kernel_start += 512;
+
+	hf = (handover_func)(kernel_start + offset);
+	hf(image, ST, bp);
 }
 
 #endif /* __X86_64_H__ */

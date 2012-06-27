@@ -323,6 +323,15 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *_cmdline)
 	memcpy((char *)boot_params, (char *)buf, 2 * 512);
 	boot_params->hdr.code32_start = (UINT32)((UINT64)kernel_start);
 
+	/*
+	 * Use the kernel's EFI boot stub by invoking the handover
+	 * protocol.
+	 */
+	if (buf->hdr.version >= 0x20b) {
+		handover_jump(image, boot_params, kernel_start);
+		goto out;
+	}
+
 	err = setup_graphics(buf);
 	if (err != EFI_SUCCESS)
 		goto out;

@@ -78,6 +78,7 @@ struct setup_header {
 	UINT64 setup_data;
 	UINT64 pref_address;
 	UINT32 init_size;
+	UINT32 handover_offset;
 } __attribute__((packed));
 
 struct efi_info {
