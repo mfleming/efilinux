@@ -167,7 +167,7 @@ close_handles:
  * load_kernel - Load a kernel image into memory from the boot device
  */
 EFI_STATUS
-load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
+load_kernel(EFI_HANDLE image, CHAR16 *name, char *_cmdline)
 {
 	UINTN map_size, _map_size, map_key;
 	EFI_PHYSICAL_ADDRESS kernel_start, addr;
@@ -183,6 +183,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	struct file *file;
 	UINTN desc_size;
 	EFI_STATUS err;
+	char *cmdline;
 	UINT64 size;
 	int i, j = 0;
 
@@ -262,6 +263,22 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	/* Don't need an allocated ID, we're a prototype */
 	buf->hdr.loader_id = 0x1;
 
+	/*
+	 * The kernel expects cmdline to be allocated pretty low,
+	 * Documentation/x86/boot.txt says,
+	 *
+	 *	"The kernel command line can be located anywhere
+	 *	between the end of the setup heap and 0xA0000"
+	 */
+	addr = 0xA0000;
+	err = allocate_pages(AllocateMaxAddress, EfiLoaderData,
+			     EFI_SIZE_TO_PAGES(strlen(_cmdline) + 1),
+			     &addr);
+	if (err != EFI_SUCCESS)
+		goto out;
+	cmdline = (char *)(UINTN)addr;
+	memcpy(cmdline, _cmdline, strlen(_cmdline) + 1);
+
 	parse_initrd(buf, cmdline);
 
 	buf->hdr.cmd_line_ptr = (UINT32)(UINTN)cmdline;
@@ -290,7 +307,9 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *cmdline)
 	if (err != EFI_SUCCESS)
 		goto out;
 
-	err = emalloc(16384, 1, &addr);
+	addr = 0x3fffffff;
+	err = allocate_pages(AllocateMaxAddress, EfiLoaderData,
+			     EFI_SIZE_TO_PAGES(16384), &addr);
 	if (err != EFI_SUCCESS)
 		goto out;
 
