@@ -54,7 +54,7 @@ struct initrd {
 	struct file *file;
 };
 
-static void parse_initrd(struct boot_params *buf, char *cmdline)
+static void parse_initrd(EFI_LOADED_IMAGE *image, struct boot_params *buf, char *cmdline)
 {
 	EFI_PHYSICAL_ADDRESS addr;
 	struct initrd *initrds;
@@ -116,7 +116,7 @@ static void parse_initrd(struct boot_params *buf, char *cmdline)
 
 		*n = '\0';
 
-		err = file_open(filename, &rdfile);
+		err = file_open(image, filename, &rdfile);
 		if (err != EFI_SUCCESS)
 			goto close_handles;
 
@@ -174,6 +174,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *_cmdline)
 	EFI_PHYSICAL_ADDRESS pref_address;
 	struct boot_params *boot_params;
 	EFI_MEMORY_DESCRIPTOR *map_buf;
+	EFI_LOADED_IMAGE *info = NULL;
 	struct e820_entry *e820_map;
 	UINT64 setup_sz, init_size;
 	struct boot_params *buf;
@@ -187,7 +188,12 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *_cmdline)
 	UINT64 size;
 	int i, j = 0;
 
-	err = file_open(name, &file);
+	err = handle_protocol(image, &LoadedImageProtocol, (void **)&info);
+	if (err != EFI_SUCCESS)
+		info = NULL;
+
+	err = file_open(info, name, &file);
+
 	if (err != EFI_SUCCESS)
 		goto out;
 
@@ -279,7 +285,7 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *_cmdline)
 	cmdline = (char *)(UINTN)addr;
 	memcpy(cmdline, _cmdline, strlen(_cmdline) + 1);
 
-	parse_initrd(buf, cmdline);
+	parse_initrd(info, buf, cmdline);
 
 	buf->hdr.cmd_line_ptr = (UINT32)(UINTN)cmdline;
 

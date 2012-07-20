@@ -98,7 +98,7 @@ file_size(struct file *f, UINT64 *size)
 	return EFI_SUCCESS;
 }
 
-extern EFI_STATUS file_open(CHAR16 *name, struct file **file);
+extern EFI_STATUS file_open(EFI_LOADED_IMAGE *image, CHAR16 *name, struct file **file);
 extern EFI_STATUS file_close(struct file *f);
 
 extern void list_boot_devices(void);

@@ -323,7 +323,7 @@ read_config_file(EFI_LOADED_IMAGE *image, CHAR16 **options,
 	if (err != TRUE)
 		return FALSE;
 
-	err = file_open(path, &file);
+	err = file_open(image, path, &file);
 	if (err != EFI_SUCCESS)
 		return FALSE;
 

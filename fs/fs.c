@@ -73,7 +73,7 @@ handle_to_dev(EFI_HANDLE *handle)
  * @file: used to return a pointer to the allocated file on success
  */
 EFI_STATUS
-file_open(CHAR16 *name, struct file **file)
+file_open(EFI_LOADED_IMAGE *image, CHAR16 *name, struct file **file)
 {
 	EFI_FILE_HANDLE fh;
 	struct file *f;
@@ -91,10 +91,19 @@ file_open(CHAR16 *name, struct file **file)
 			break;
 	}
 
-	if (!name[dev_len] || !dev_len)
-		goto notfound;
+	if (!name[dev_len] || !dev_len) {
+		dev_len = 0;
+		if (!image)
+			goto notfound;
 
-	name[dev_len] = 0;
+		i = handle_to_dev(image->DeviceHandle);
+		if (i < 0 || i >= nr_fs_devices)
+			goto notfound;
+
+		f->handle = fs_devices[i].fh;
+		goto found;
+	} else
+		name[dev_len++] = 0;
 
 	if (name[0] >= '0' && name[0] <= '9') {
 		i = Atoi(name);
@@ -126,7 +135,7 @@ file_open(CHAR16 *name, struct file **file)
 
 found:
 	/* Strip the device name */
-	filename = name + dev_len + 1;
+	filename = name + dev_len;
 
 	/* skip any path separators */
 	while (*filename == ':' || *filename == '\\')
