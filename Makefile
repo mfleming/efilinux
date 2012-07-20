@@ -63,6 +63,9 @@ ifeq ($(ARCH),ia32)
 		CFLAGS += -m32
 	endif
 endif
+ifeq ($(ARCH),x86_64)
+	CFLAGS += -mno-red-zone
+endif
 
 LDFLAGS=-T $(LDSCRIPT) -Bsymbolic -shared -nostdlib -znocombreloc \
 		-L$(LIBDIR) $(CRT0)
