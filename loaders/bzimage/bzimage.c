@@ -248,6 +248,12 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *_cmdline)
 		goto out;
 	}
 
+	if (!buf->hdr.relocatable_kernel) {
+		Print(L"Expected relocatable kernel");
+		err = EFI_INVALID_PARAMETER;
+		goto out;
+	}
+
 	if (buf->hdr.version >= 0x20a) {
 		pref_address = buf->hdr.pref_address;
 		init_size = buf->hdr.init_size;
