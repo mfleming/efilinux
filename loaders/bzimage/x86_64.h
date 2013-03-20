@@ -52,7 +52,8 @@ static inline void kernel_jump(EFI_PHYSICAL_ADDRESS kernel_start,
 	kf(NULL, boot_params);
 }
 
-static inline void handover_jump(EFI_HANDLE image, struct boot_params *bp,
+static inline void handover_jump(UINT16 kernel_version, EFI_HANDLE image,
+				 struct boot_params *bp,
 				 EFI_PHYSICAL_ADDRESS kernel_start)
 {
 	UINT32 offset = bp->hdr.handover_offset;

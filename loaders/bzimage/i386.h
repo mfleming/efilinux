@@ -42,19 +42,28 @@ static inline void kernel_jump(EFI_PHYSICAL_ADDRESS kernel_start,
 		      :: "m" (boot_params), "m" (kernel_start));
 }
 
-static inline void handover_jump(EFI_HANDLE image, struct boot_params *bp,
+typedef void(*handover_func)(void *, EFI_SYSTEM_TABLE *,
+			     struct boot_params *) __attribute__((regparm(0)));
+
+static inline void handover_jump(UINT16 kernel_version, EFI_HANDLE image,
+				 struct boot_params *bp,
 				 EFI_PHYSICAL_ADDRESS kernel_start)
 {
 	kernel_start += bp->hdr.handover_offset;
 
-	asm volatile ("cli		\n"
-		      "pushl %0         \n"
-		      "pushl %1         \n"
-		      "pushl %2         \n"
-		      "movl %3, %%ecx	\n"
-		      "jmp *%%ecx	\n"
-		      :: "m" (bp), "m" (ST),
-		         "m" (image), "m" (kernel_start));
+	if (kernel_version == 0x20b) {
+		asm volatile ("cli		\n"
+			      "pushl %0         \n"
+			      "pushl %1         \n"
+			      "pushl %2         \n"
+			      "movl %3, %%ecx	\n"
+			      "jmp *%%ecx	\n"
+			      :: "m" (bp), "m" (ST),
+			      "m" (image), "m" (kernel_start));
+	} else {
+		handover_func hf = (handover_func)(UINTN)kernel_start;
+		hf(image, ST, bp);
+	}
 }
 
 #endif /* __I386_H__ */

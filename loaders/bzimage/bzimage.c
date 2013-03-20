@@ -334,7 +334,8 @@ load_kernel(EFI_HANDLE image, CHAR16 *name, char *_cmdline)
 	 * protocol.
 	 */
 	if (buf->hdr.version >= 0x20b) {
-		handover_jump(image, boot_params, kernel_start);
+		handover_jump(buf->hdr.version, image,
+			      boot_params, kernel_start);
 		goto out;
 	}
 
