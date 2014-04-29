@@ -430,9 +430,18 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *_table)
 		options = info->LoadOptions;
 		options_size = info->LoadOptionsSize;
 
-		/* Skip the first word, that's our name. */
-		for (i = 0; i < options_size && options[i] != ' '; i++)
-			;
+		/*
+		 * Skip the first word, that's probably our name. Stop
+		 * when we hit a word delimiter (' ') or the start of an
+		 * efilinux argument ('-').
+		 */
+		i = 0;
+		while (i < options_size) {
+			if (options[i] == ' ' || options[i] == '-')
+				break;
+			i++;
+		}
+
 		options = &options[i];
 		options_size -= i;
 	}
