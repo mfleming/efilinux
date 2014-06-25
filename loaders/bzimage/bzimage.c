@@ -130,7 +130,9 @@ static void parse_initrd(EFI_LOADED_IMAGE *image,
 	if (err != EFI_SUCCESS)
 		goto close_handles;
 
-	if ((UINTN)addr > boot_params->hdr.ramdisk_max) {
+	if ((boot_params->hdr.version < 0x20c ||
+	     !(boot_params->hdr.xloadflags & XLF_CAN_BE_LOADED_ABOVE_4G)) &&
+	    (UINTN)addr > boot_params->hdr.ramdisk_max) {
 		Print(L"ramdisk address is too high!\n");
 		efree(addr, size);
 		goto close_handles;
@@ -138,6 +140,11 @@ static void parse_initrd(EFI_LOADED_IMAGE *image,
 
 	boot_params->hdr.ramdisk_start = (UINT32)(UINTN)addr;
 	boot_params->hdr.ramdisk_len = (UINT32)size;
+	if (boot_params->hdr.version >= 0x20c &&
+	    (boot_params->hdr.xloadflags & XLF_CAN_BE_LOADED_ABOVE_4G)) {
+		boot_params->ext_ramdisk_image = (UINT64)(UINTN)addr >> 32;
+		boot_params->ext_ramdisk_size = size >> 32;
+	}
 
 	for (j = 0; j < nr_initrds; j++) {
 		struct initrd *rd = &initrds[j];

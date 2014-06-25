@@ -40,6 +40,13 @@
 #define E820_NVS		4
 #define E820_UNUSABLE		5
 
+/* xloadflags */
+#define XLF_KERNEL_64                   (1<<0)
+#define XLF_CAN_BE_LOADED_ABOVE_4G      (1<<1)
+#define XLF_EFI_HANDOVER_32             (1<<2)
+#define XLF_EFI_HANDOVER_64             (1<<3)
+#define XLF_EFI_KEXEC                   (1<<4)
+
 struct setup_header {
 	UINT8 setup_secs;	/* Sectors for setup code */
 	UINT16 root_flags;
@@ -69,7 +76,8 @@ struct setup_header {
 	UINT32 ramdisk_max;    /* Highest legal initrd address */
 	UINT32 kernel_alignment; /* Physical addr alignment required for kernel */
 	UINT8 relocatable_kernel; /* Whether kernel is relocatable or not */
-	UINT8 _pad2[3];
+	UINT8 min_alignment;
+	UINT16 xloadflags;
 	UINT32 cmdline_size;
 	UINT32 hardware_subarch;
 	UINT64 hardware_subarch_data;
@@ -148,7 +156,10 @@ struct boot_params {
 	UINT8 hd1_info[16];
 	UINT8 sys_desc_table[0x10];
 	UINT8 olpc_ofw_header[0x10];
-	UINT8 _pad4[128];
+	UINT32 ext_ramdisk_image;
+	UINT32 ext_ramdisk_size;
+	UINT32 ext_cmd_line_ptr;
+	UINT8 _pad4[116];
 	UINT8 edid_info[0x80];
 	struct efi_info efi_info;
 	UINT32 alt_mem_k;
